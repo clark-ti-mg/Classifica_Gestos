@@ -1,60 +1,106 @@
 import streamlit as st
+import gdown
 import tensorflow as tf
+import io
 from PIL import Image
 import numpy as np
+import pandas as pd
+import plotly.express as px
 
-# Load the trained model
-modelo = tf.keras.models.load_model('saved_model/meu_modelo_gestos.keras')
 
-# Add a title to the Streamlit application
-st.title("Classificador de Gestos")
+# armazenar em cache pra não precisar baixar sempre que der refresh
+@st.cache_resource
 
-# Add an explanatory header
-st.header("Faça upload de uma imagem de um gesto para classificação")
+def carrega_modelo():
+    # https://drive.google.com/file/d/1GpWix8dp6FeFAs6g0etbnw_avu9Aflfp/view?usp=sharing
+    url = "https://drive.google.com/uc?id=1GpWix8dp6FeFAs6g0etbnw_avu9Aflfp"
+    gdown.download(url, 'modelo_quantizado16bits.tflite') # baixa o arquivo (modelo)
 
-# Create a file uploader widget
-uploaded_file = st.file_uploader("Escolha uma imagem...", type=["jpg", "jpeg", "png"])
+    # carrega o modelo
+    interpreter = tf.lite.Interpreter(model_path='modelo_quantizado16bits.tflite')
 
-# Check if a file has been uploaded
-if uploaded_file is not None:
-    # Open the uploaded image
-    image = Image.open(uploaded_file)
+    # disponibiliza para uso
+    interpreter.allocate_tensors()
 
-    # Resize the image to 50x50 pixels
-    image = image.resize((50, 50))
+    return interpreter
 
-    # Convert the image to a NumPy array
-    image_array = np.array(image)
+def carrega_imagem():
+    uploaded_file = st.file_uploader("Arraste e solte a imagem ou clique para selecionar uma", type=['png', 'jpg', 'jpeg'])
 
-    # Expand the dimensions of the image array to match the model's input shape
-    image_array = np.expand_dims(image_array, axis=0)
+    if uploaded_file is not None:
+        # ler a imagem
+        image_data = uploaded_file.read()
 
-    # Normalize the image data
-    image_array = image_array / 255.0
+        # abrir a imagem
+        image = Image.open(io.BytesIO(image_data))
 
-    st.write("Arquivo carregado com sucesso e pré-processado.")
-    # The prediction logic will be added here later
+        # exibir a imagem na página
+        st.image(image)
+        st.success("Imagem foi carregada com sucesso")
 
-# Use the model to make a prediction
-predictions = modelo.predict(image_array)
+        # converter a imagem em ponto flutuante
+        image = np.array(image, dtype=np.float32)
 
-# Get the index of the class with the highest probability
-predicted_class_index = np.argmax(predictions)
+        # normalizar a imagem
+        image = image/255.0
 
-# You can add code here later to get the actual class name using the index
-st.write(f"Predicted class index: {predicted_class_index}")
+        # adicionar uma dimensão extra
+        image = np.expand_dims(image, axis=0)
+        
+        return image
+    
+def previsao(interpreter, image):
+    # Obtém os detalhes da entrada do modelo (por exemplo: shape, índice do tensor)
+    input_details = interpreter.get_input_details()
+    
+    # Obtém os detalhes da saída do modelo
+    output_details = interpreter.get_output_details()
+    
+    # Define a imagem (pré-processada) como entrada no modelo
+    interpreter.set_tensor(input_details[0]['index'], image)
+    
+    # Executa a inferência (processo de predição) com o modelo TFLite
+    interpreter.invoke()
+    
+    # Obtém a saída do modelo — geralmente, as probabilidades para cada classe
+    output_data = interpreter.get_tensor(output_details[0]['index'])
 
-# Use the model to make a prediction
-predictions = modelo.predict(image_array)
+    # Lista com os nomes das classes, correspondentes à ordem da saída do modelo
+    classes = ['BlackMeasles', 'BlackRot', 'HealthyGrapes', 'LeafBlight']
+    
+    # Cria um DataFrame para exibir as classes e suas probabilidades
+    df = pd.DataFrame()
+    df['classes'] = classes
+    df['probabilidades (%)'] = 100 * output_data[0]  # Converte para porcentagem
+    
+    # Cria um gráfico de barras horizontal com Plotly para exibir as probabilidades
+    fig = px.bar(
+        df,
+        y='classes',
+        x='probabilidades (%)',
+        orientation='h',
+        text='probabilidades (%)',
+        title='Probabilidade de Classes de Doenças em Uvas'
+    )
+    
+    # Exibe o gráfico interativo na interface do Streamlit
+    st.plotly_chart(fig)
 
-# Get the index of the class with the highest probability
-predicted_class_index = np.argmax(predictions)
+def main():
+    st.set_page_config(
+        page_title="Classifica folhas de Videiras"
+    )
+    st.write("# Classifica folhas de videiras")
+    # carregar o modelo
+    interpreter = carrega_modelo()
 
-# Get the list of class names from the training dataset
-class_names = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z', '_'] # Replace with your actual class names
 
-# Get the predicted class name
-predicted_class_name = class_names[predicted_class_index]
+    # carregar a imagem
+    image = carrega_imagem()
 
-# Display the predicted class name
-st.write(f"A imagem é classificada como: **{predicted_class_name}**")
+    # classificar a imagem
+    if image is not None:
+        previsao(interpreter, image)
+
+if __name__ == "__main__":
+    main()
