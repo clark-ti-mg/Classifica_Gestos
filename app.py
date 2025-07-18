@@ -13,7 +13,7 @@ import plotly.express as px
 
 def carrega_modelo():
     # https://drive.google.com/file/d/1GpWix8dp6FeFAs6g0etbnw_avu9Aflfp/view?usp=sharing
-    url = "https://drive.google.com/uc?id=1GpWix8dp6FeFAs6g0etbnw_avu9Aflfp"
+    url = "https://drive.google.com/uc?id=1YtjXXBk1CEBhhSHH87vQTlKu8vLxjjlg"
     gdown.download(url, 'modelo_quantizado16bits.tflite') # baixa o arquivo (modelo)
 
     # carrega o modelo
@@ -66,7 +66,7 @@ def previsao(interpreter, image):
     output_data = interpreter.get_tensor(output_details[0]['index'])
 
     # Lista com os nomes das classes, correspondentes à ordem da saída do modelo
-    classes = ['BlackMeasles', 'BlackRot', 'HealthyGrapes', 'LeafBlight']
+    classes = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z', '_']
     
     # Cria um DataFrame para exibir as classes e suas probabilidades
     df = pd.DataFrame()
@@ -88,9 +88,9 @@ def previsao(interpreter, image):
 
 def main():
     st.set_page_config(
-        page_title="Classifica folhas de Videiras"
+        page_title="Classifica gestos"
     )
-    st.write("# Classifica folhas de videiras")
+    st.write("# Classifica gestos")
     # carregar o modelo
     interpreter = carrega_modelo()
 
