@@ -102,12 +102,5 @@ def main():
     if image is not None:
         previsao(interpreter, image)
 
-    st.write("Imagem pré-processada (primeiros pixels):")
-    st.write(image_array[0, 0, 0, :]) # Display the first pixel of the preprocessed image
-
-    # Display the raw prediction output (probabilities for each class)
-    st.write("Saída bruta do modelo (probabilidades):")
-    st.write(output_data)
-
 if __name__ == "__main__":
     main()
