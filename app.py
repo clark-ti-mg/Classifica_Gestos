@@ -12,8 +12,8 @@ import plotly.express as px
 @st.cache_resource
 
 def carrega_modelo():
-    # https://drive.google.com/file/d/1YAMjfUQ608juD1Ojc0qb08XMrToU5BWR/view?usp=sharing
-    url = "https://drive.google.com/uc?id=1YAMjfUQ608juD1Ojc0qb08XMrToU5BWR"
+    # https://drive.google.com/file/d/1tktcplBsIuKUZvypEKFDZRvpbuxtSyiJ/view?usp=sharing
+    url = "https://drive.google.com/uc?id=1tktcplBsIuKUZvypEKFDZRvpbuxtSyiJ"
     gdown.download(url, 'modelo_quantizado16bits.tflite') # baixa o arquivo (modelo)
 
     # carrega o modelo
